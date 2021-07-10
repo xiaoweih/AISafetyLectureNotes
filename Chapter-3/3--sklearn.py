@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[2]:
+
+
 from sklearn import datasets
 dataset = datasets.load_iris()
 #dataset = datasets.load_digits()
@@ -13,6 +19,9 @@ print("Number of Classes: " + str(classes))
 
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
+
+
+# In[3]:
 
 
 ############## decision tree
@@ -34,6 +43,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 print("Confusion Matrix:\n%s"%confusion_matrix(y_test, y_pred))
 print("Classification Report:\n%s"%classification_report(y_test, y_pred))
 
+
+# In[4]:
+
+
 ############## k-nn
 
 print("===== k-nn ======")
@@ -52,6 +65,10 @@ print("Predictive outputs of all instances:\n%s"%y_pred)
 from sklearn.metrics import classification_report, confusion_matrix
 print("Confusion Matrix:\n%s"%confusion_matrix(y_test, y_pred))
 print("Classification Report:\n%s"%classification_report(y_test, y_pred))
+
+
+# In[5]:
+
 
 ############## Logistic Regression 
 
@@ -72,6 +89,9 @@ print("Confusion Matrix:\n%s"%confusion_matrix(y_test, y_pred))
 print("Classification Report:\n%s"%classification_report(y_test, y_pred))
 
 
+# In[6]:
+
+
 ############## Naive Bayes
 
 print("===== Naive Bayes ======")
@@ -89,3 +109,22 @@ print("Predictive outputs of all instances:\n%s"%y_pred)
 from sklearn.metrics import classification_report, confusion_matrix
 print("Confusion Matrix:\n%s"%confusion_matrix(y_test, y_pred))
 print("Classification Report:\n%s"%classification_report(y_test, y_pred))
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
