@@ -63,37 +63,6 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 ################    don't change the below code    #####################
 ############################################################################
 
-class Dataset(Dataset):
-    """User defined class to build a datset using Pytorch class Dataset."""
-    
-    def __init__(self, data, transform = None):
-        """Method to initilaize variables.""" 
-        self.data_ = list(data.values)
-        self.transform = transform
-        
-        label = []
-        image = []
-        
-        for i in self.data_:
-             # first column is of labels.
-            label.append(i[0])
-            image.append(i[1:]/255)
-        self.labels = np.asarray(label)
-        # Dimension of Images = 28 * 28 * 1. where height = width = 28 and color_channels = 1.
-        self.images = np.asarray(image).reshape(-1, 28, 28, 1).astype('float32')
-
-    def __getitem__(self, index):
-        label = self.labels[index]
-        image = self.images[index]
-        
-        if self.transform is not None:
-            image = self.transform(image)
-
-        return image, label
-
-    def __len__(self):
-        return len(self.images)
-
 train_set = torchvision.datasets.FashionMNIST(root='../data', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
 train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
