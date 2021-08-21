@@ -220,7 +220,7 @@ def p_distance(model, train_loader, device):
 
 'Call adv_attack() method on a pre-trained model'
 'the robustness of the model is evaluated against the infinite-norm distance measure'
-p_distance(model, train_loader, device)
+#p_distance(model, train_loader, device)
 
 
 # In[ ]:
