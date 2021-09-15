@@ -12,3 +12,15 @@
 #### Chapter 6: Probabilistic Graphical Model 
 #### Chapter 7: Competitions (for Assignment)
 
+# Installation
+
+First of all, please set up a conda environment
+
+```sh
+conda create --name aisafety python==3.7
+conda activate aisafety
+```
+This should be followed by installing software dependencies:
+```sh
+conda install -c pandas numpy matplotlib tensorflow scikit-learn pandas pytorch torchvision
+```
