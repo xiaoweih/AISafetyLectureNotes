@@ -1,6 +1,6 @@
 # Lecture Notes on Machine Learning and Its Safety and Reliability Issues
 
-## This repository include the code and the draft textbook. It is used in "COMP219: Advanced Artificial Intelligence" at the Univesity of Liverpool for second year undergraduate students. 
+## This repository includes the code and the draft textbook. It is used in "COMP219: Advanced Artificial Intelligence" at the Univesity of Liverpool for second year undergraduate students. 
 
 ### Table of Contents:  
 
