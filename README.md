@@ -10,4 +10,4 @@
 #### Chapter 4: Deep Learning
 #### Chapter 5: Loss Function and Regularisation
 #### Chapter 6: Probabilistic Graphical Model 
-#### Chapter 7: Competitions
+#### Chapter 7: Competitions (for Assignment)
