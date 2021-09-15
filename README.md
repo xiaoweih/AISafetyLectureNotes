@@ -11,3 +11,5 @@
 #### Chapter 5: Loss Function and Regularisation
 #### Chapter 6: Probabilistic Graphical Model 
 #### Chapter 7: Competitions (for Assignment)
+
+### in the repository, directory Chapter-X includes the code that is used in Chapter X. The lecture notes are included in the file ""
