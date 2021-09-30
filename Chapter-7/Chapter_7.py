@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[8]:
-
-
 ############################################################################
 ### Written by Gaojie Jin and updated by Xiaowei Huang, 2021
 ###
@@ -62,7 +56,6 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 ############################################################################
 ################    don't change the below code    #####################
 ############################################################################
-
 train_set = torchvision.datasets.FashionMNIST(root='../data', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
 train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
@@ -101,7 +94,7 @@ def adv_attack(model, X, y, device):
     ## Note: below is the place you need to edit to implement your own attack algorithm
     ################################################################################################
     
-    random_noise = torch.FloatTensor(*X_adv.shape).uniform_(-0.3, 0.3).to(device)
+    random_noise = torch.FloatTensor(*X_adv.shape).uniform_(-0.1, 0.1).to(device)
     X_adv = Variable(X_adv.data + random_noise)
     
     ################################################################################################
@@ -157,8 +150,8 @@ def eval_adv_test(model, device, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
+            data = data.view(data.size(0),28*28)
             adv_data = adv_attack(model, data, target, device=device)
-            adv_data = adv_data.view(adv_data.size(0),28*28)
             output = model(adv_data)
             test_loss += F.cross_entropy(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
@@ -202,12 +195,13 @@ def train_model():
 
 'compute perturbation distance'
 def p_distance(model, train_loader, device):
-    p = 0
+    p = []
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
+        data = data.view(data.size(0),28*28)
         adv_data = adv_attack(model, data, target, device=device)
-        p += torch.norm(data-adv_data, float('inf'))
-    print('epsilon p: ',p/batch_idx)
+        p.append(torch.norm(data-adv_data, float('inf')))
+    print('epsilon p: ',max(p))
 
     
 ################################################################################################
@@ -216,39 +210,9 @@ def p_distance(model, train_loader, device):
     
 'Comment out the following command when you do not want to re-train the model'
 'In that case, it will load a pre-trained model you saved in train_model()'
-#model = train_model()
+model = train_model()
 
 'Call adv_attack() method on a pre-trained model'
 'the robustness of the model is evaluated against the infinite-norm distance measure'
-#p_distance(model, train_loader, device)
-
-
-# In[ ]:
-
-
-
-
-
-# In[23]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+'!!! important: MAKE SURE the infinite-norm distance (epsilon p) less than 0.11 !!!'
+p_distance(model, train_loader, device)
