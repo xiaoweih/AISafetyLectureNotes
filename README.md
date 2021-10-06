@@ -14,7 +14,7 @@
 
 # Installation
 
-First of all, please set up a conda environment
+First of all, you can set up a conda environment (Note that you do not need to set up conda in the lab)
 
 ```sh
 conda create --name aisafety python==3.7
