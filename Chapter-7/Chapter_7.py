@@ -56,10 +56,10 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 ############################################################################
 ################    don't change the below code    #####################
 ############################################################################
-train_set = torchvision.datasets.FashionMNIST(root='../data', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
+train_set = torchvision.datasets.FashionMNIST(root='data', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
 train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
-test_set = torchvision.datasets.FashionMNIST(root='../data', train=False, download=True, transform=transforms.Compose([transforms.ToTensor()]))
+test_set = torchvision.datasets.FashionMNIST(root='data', train=False, download=True, transform=transforms.Compose([transforms.ToTensor()]))
 test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
 
 # define fully connected network
