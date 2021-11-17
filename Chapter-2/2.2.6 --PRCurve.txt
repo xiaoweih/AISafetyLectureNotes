@@ -24,5 +24,10 @@ classifier.fit(X_train, y_train)
 y_score = classifier.decision_function(X_test)
 
 precision, recall, _ = precision_recall_curve(y_test, y_score)
-disp = PrecisionRecallDisplay(precision=precision, recall=recall)
-plt = disp.plot()
+
+plt.plot(recall, precision)
+plt.title('PRC')
+plt.xlabel('True Positive')
+plt.ylabel('precision')
+
+plt.show()
