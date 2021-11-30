@@ -4,9 +4,9 @@ seaborn.set_style('whitegrid')
 import pandas as pd
 X = pd.DataFrame({'A':[0,0,0,1,0], 'B':[0,0,1,0,0], 'C':[1,1,0,0,1], 'D':[0,1,0,1,1]})
 X = X.to_numpy()
+
 tic = time.time()
 model = BayesianNetwork.from_samples(X) 
-
 t = time.time() - tic
 p = model.log_probability(X).sum()
 print("Greedy")
