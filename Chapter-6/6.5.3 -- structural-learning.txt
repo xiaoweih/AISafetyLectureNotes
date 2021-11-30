@@ -2,7 +2,7 @@ from pomegranate import BayesianNetwork
 import seaborn, time, numpy, matplotlib
 seaborn.set_style('whitegrid')
 import pandas as pd
-X = pd.DataFrame({'A':[0,0,0,1,0], 'B':[0,0,1,0,0], 'C':[1,1,0,0,1], 'D':[0,1,0,1,1]})
+X = pd.DataFrame({'1':[0,0,0,1,0], '2':[0,0,1,0,0], '3':[1,1,0,0,1], '4':[0,1,0,1,1]})
 X = X.to_numpy()
 
 tic = time.time()
