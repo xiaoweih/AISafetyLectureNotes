@@ -23,6 +23,7 @@ from torchvision import transforms
 from torch.autograd import Variable
 import argparse
 import time
+import copy
 
 # input id
 id_ = 1000
@@ -86,7 +87,7 @@ class Net(nn.Module):
 #############    end of "don't change the below code"   ######################
 ##############################################################################
 
-'generate adversarial data, you can define your adversarial method'
+#generate adversarial data, you can define your adversarial method
 def adv_attack(model, X, y, device):
     X_adv = Variable(X.data)
     
@@ -103,7 +104,7 @@ def adv_attack(model, X, y, device):
     
     return X_adv
 
-'train function, you can use adversarial training'
+#train function, you can use adversarial training
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -117,8 +118,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
         optimizer.zero_grad()
         
         #compute loss
-        #loss = F.cross_entropy(model(adv_data), target)
-        loss = F.cross_entropy(model(data), target)
+        #loss = F.nll_loss(model(adv_data), target)
+        loss = F.nll_loss(model(data), target)
         
         #get gradients and update
         loss.backward()
@@ -126,7 +127,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         
 
 
-'predict function'
+#predict function
 def eval_test(model, device, test_loader):
     model.eval()
     test_loss = 0
@@ -136,7 +137,7 @@ def eval_test(model, device, test_loader):
             data, target = data.to(device), target.to(device)
             data = data.view(data.size(0),28*28)
             output = model(data)
-            test_loss += F.cross_entropy(output, target, size_average=False).item()
+            test_loss += F.nll_loss(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
@@ -153,14 +154,14 @@ def eval_adv_test(model, device, test_loader):
             data = data.view(data.size(0),28*28)
             adv_data = adv_attack(model, data, target, device=device)
             output = model(adv_data)
-            test_loss += F.cross_entropy(output, target, size_average=False).item()
+            test_loss += F.nll_loss(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
     test_accuracy = correct / len(test_loader.dataset)
     return test_loss, test_accuracy
 
-'main function, train the dataset and print train loss, test loss for each epoch'
+#main function, train the dataset and print train loss, test loss for each epoch
 def train_model():
     model = Net().to(device)
     
@@ -184,7 +185,10 @@ def train_model():
         print('Epoch '+str(epoch)+': '+str(int(time.time()-start_time))+'s', end=', ')
         print('trn_loss: {:.4f}, trn_acc: {:.2f}%'.format(trnloss, 100. * trnacc), end=', ')
         print('adv_loss: {:.4f}, adv_acc: {:.2f}%'.format(advloss, 100. * advacc))
-    
+        
+    adv_tstloss, adv_tstacc = eval_adv_test(model, device, test_loader)
+    print('Your estimated attack ability, by applying your attack method on your own trained model, is: {:.4f}'.format(1/adv_tstacc))
+    print('Your estimated defence ability, by evaluating your own defence model over your attack, is: {:.4f}'.format(adv_tstacc))
     ################################################################################################
     ## end of training method
     ################################################################################################
@@ -193,14 +197,15 @@ def train_model():
     torch.save(model.state_dict(), str(id_)+'.pt')
     return model
 
-'compute perturbation distance'
+#compute perturbation distance
 def p_distance(model, train_loader, device):
     p = []
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         data = data.view(data.size(0),28*28)
+        data_ = copy.deepcopy(data.data)
         adv_data = adv_attack(model, data, target, device=device)
-        p.append(torch.norm(data-adv_data, float('inf')))
+        p.append(torch.norm(data_-adv_data, float('inf')))
     print('epsilon p: ',max(p))
 
     
@@ -208,11 +213,11 @@ def p_distance(model, train_loader, device):
 ## Note: below is for testing/debugging purpose, please comment them out in the submission file
 ################################################################################################
     
-'Comment out the following command when you do not want to re-train the model'
-'In that case, it will load a pre-trained model you saved in train_model()'
+#Comment out the following command when you do not want to re-train the model
+#In that case, it will load a pre-trained model you saved in train_model()
 model = train_model()
 
-'Call adv_attack() method on a pre-trained model'
-'the robustness of the model is evaluated against the infinite-norm distance measure'
-'!!! important: MAKE SURE the infinite-norm distance (epsilon p) less than 0.11 !!!'
+#Call adv_attack() method on a pre-trained model'
+#the robustness of the model is evaluated against the infinite-norm distance measure
+#important: MAKE SURE the infinite-norm distance (epsilon p) less than 0.11 !!!
 p_distance(model, train_loader, device)
