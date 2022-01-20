@@ -4,13 +4,16 @@
 
 ### Table of Contents:  
 
-#### Chapter 1: Foundations
-#### Chapter 2: Evaluation of Machine Learning Models
-#### Chapter 3: Simple Machine Learning Models
-#### Chapter 4: Deep Learning
-#### Chapter 5: Loss Function and Regularisation
-#### Chapter 6: Probabilistic Graphical Model 
-#### Chapter 7: Competitions (for Assignment)
+#### Part 1: Introduction
+#### Part 2: Safety of Traditional Machine Learning Models
+#### Part 3: Safety of Deep Learning
+#### Part 4: Robustness Verification of Deep Learning
+#### Part 5: Enhancement to Robustness and Generalization
+#### Part 6: Probabilistic Graph Models for Feature Robustness
+#### Part 7: Looking Further
+#### Part 8: Mathematical Foundations
+#### Part 9: Competitions
+
 
 # Installation
 
