@@ -1,0 +1,33 @@
+from pomegranate import BayesianNetwork
+import seaborn, time, numpy, matplotlib
+seaborn.set_style('whitegrid')
+import pandas as pd
+X = pd.DataFrame({'1':[0,0,0,1,0], '2':[0,0,1,0,0], '3':[1,1,0,0,1], '4':[0,1,0,1,1]})
+X = X.to_numpy()
+
+tic = time.time()
+model = BayesianNetwork.from_samples(X) 
+t = time.time() - tic
+p = model.log_probability(X).sum()
+print("Greedy")
+print("Time (s): ", t)
+print("P(D|M): ", p)
+model.plot()
+
+tic = time.time()
+model = BayesianNetwork.from_samples(X, algorithm='exact-dp') 
+t = time.time() - tic
+p = model.log_probability(X).sum()
+print("exact-dp")
+print("Time (s): ", t)
+print("P(D|M): ", p)
+model.plot()
+
+tic = time.time()
+model = BayesianNetwork.from_samples(X, algorithm='exact') 
+t = time.time() - tic
+p = model.log_probability(X).sum()
+print("exact")
+print("Time (s): ", t)
+print("P(D|M): ", p)
+model.plot()
