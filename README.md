@@ -4,15 +4,11 @@
 
 ### Table of Contents:  
 
-#### Part 1: Introduction
-#### Part 2: Safety of Traditional Machine Learning Models
-#### Part 3: Safety of Deep Learning
-#### Part 4: Robustness Verification of Deep Learning
-#### Part 5: Enhancement to Robustness and Generalization
-#### Part 6: Probabilistic Graph Models for Feature Robustness
-#### Part 7: Looking Further
-#### Part 8: Mathematical Foundations
-#### Part 9: Competitions
+#### Part 1: Safety Properties
+#### Part 2: Safety Threats
+#### Part 3: Safety Solutions
+#### Part 4: Extended Safety Solutions
+#### Part 5: Appendix: Mathematical Foundations and Competition
 
 
 # Installation
