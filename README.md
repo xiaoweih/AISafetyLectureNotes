@@ -23,4 +23,3 @@ This should be followed by installing software dependencies:
 ```sh
 conda install -c pandas numpy matplotlib tensorflow scikit-learn pandas pytorch torchvision
 ```
-FMnist: https://drive.google.com/file/d/1CiHlLU03fv1c-yqtnxXoNFcKos35bGoV/view?usp=sharing
