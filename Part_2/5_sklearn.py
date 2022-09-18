@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-
+# import os
 
 from sklearn import datasets
 dataset = datasets.load_iris()
