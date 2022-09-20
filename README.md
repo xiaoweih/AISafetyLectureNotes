@@ -1,7 +1,7 @@
 # Machine Learning Safety
 
-### This repository includes the code (in Chapter-X/) and the draft textbook (file "Machine_Learning_Safety.pdf"). 
-### It is used in "COMP219: Advanced Artificial Intelligence" at the Univesity of Liverpool for second year undergraduate students. 
+This repository includes the code (in Chapter-X/) and the draft textbook (file "Machine_Learning_Safety.pdf"). 
+It is used in "COMP219: Advanced Artificial Intelligence" at the Univesity of Liverpool for second year undergraduate students. 
 
 ### Table of Contents:  
 
