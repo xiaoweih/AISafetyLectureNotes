@@ -32,3 +32,7 @@ This should be followed by installing software dependencies:
 ```sh
 conda install -c pandas numpy matplotlib tensorflow scikit-learn pandas pytorch torchvision
 ```
+
+## use IDE with conda
+1. Visual Studio Code (VSC) is a free cross-platform source code editor. The Python for Visual Studio Code extension allows VSC to connect to Python distributions installed on your computer. Reference: https://docs.anaconda.com/anaconda/user-guide/tasks/integration/python-vsc/
+2. Using PyCharm. Reference: https://docs.anaconda.com/anaconda/user-guide/tasks/pycharm/
