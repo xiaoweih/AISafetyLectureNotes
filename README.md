@@ -21,6 +21,7 @@ Linux: https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.h
 
 macOS: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
+## conda env setup
 First of all, you can set up a conda environment (Note that you do not need to set up conda in the lab)
 
 ```sh
