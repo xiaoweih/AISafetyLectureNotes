@@ -15,7 +15,9 @@ It is used in "COMP219: Advanced Artificial Intelligence" at the Univesity of Li
 # Installation
 
 ## conda installation
-windows:  ``https://conda.io/projects/conda/en/latest/user-guide/install/windows.html``
+windows https://conda.io/projects/conda/en/latest/user-guide/install/windows.html
+Linux: https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
+macOS: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
 First of all, you can set up a conda environment (Note that you do not need to set up conda in the lab)
 
