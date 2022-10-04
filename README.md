@@ -36,3 +36,8 @@ conda install -c pandas numpy matplotlib tensorflow scikit-learn pandas pytorch 
 ## IDE (VScode/PyCharm) with conda
 1. **Visual Studio Code (VScode)** is a free cross-platform source code editor. The Python for Visual Studio Code extension allows VSC to connect to Python distributions installed on your computer. Reference: https://docs.anaconda.com/anaconda/user-guide/tasks/integration/python-vsc/
 2. Using **PyCharm**. PyCharm is an IDE that integrates with IPython Notebook, has an interactive Python console, and supports Anaconda as well as multiple scientific packages. Reference: https://docs.anaconda.com/anaconda/user-guide/tasks/pycharm/
+3. If you want to use **Jupyter Notebook** to code, use below command:
+
+```sh
+jupyter notebook
+```
