@@ -1,5 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+"""
+References for numpy and matplotlib:
+- numpy: 
+    https://numpy.org/doc/stable/reference/arrays.ndarray.html
+    https://numpy.org/doc/stable/reference/index.html
+- matplotlib:
+    https://matplotlib.org/3.5.1/api/_as_gen/matplotlib.pyplot.html
+"""
 
 
 x = np.arange(100)
