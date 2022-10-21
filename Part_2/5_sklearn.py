@@ -2,8 +2,8 @@
 # coding: utf-8
 
 # In[2]:
-# import os
 
+# https://scikit-learn.org/stable/user_guide.html
 from sklearn import datasets
 dataset = datasets.load_iris()
 #dataset = datasets.load_digits()
@@ -39,6 +39,7 @@ print("Labels of all instances:\n%s"%y_test)
 y_pred = tree.predict(X_test)
 print("Predictive outputs of all instances:\n%s"%y_pred)
 
+# what is confusion matrix: https://towardsdatascience.com/understanding-confusion-matrix-a9ad42dcfd62
 from sklearn.metrics import classification_report, confusion_matrix
 print("Confusion Matrix:\n%s"%confusion_matrix(y_test, y_pred))
 print("Classification Report:\n%s"%classification_report(y_test, y_pred))
