@@ -39,5 +39,6 @@ conda install -c pandas numpy matplotlib tensorflow scikit-learn pandas pytorch 
 3. If you want to use **Jupyter Notebook** to code, use below command:
 
 ```sh
+conda install jupyter
 jupyter notebook
 ```
