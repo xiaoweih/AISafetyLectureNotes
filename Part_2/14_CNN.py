@@ -13,6 +13,9 @@ import argparse
 import time
 import os
 
+# Parser Official Documentary
+# https://docs.python.org/3/library/argparse.html
+
 #setup training parameters
 parser = argparse.ArgumentParser(description='PyTorch MNIST Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
