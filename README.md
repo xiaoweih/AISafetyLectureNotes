@@ -30,7 +30,7 @@ conda activate aisafety
 ```
 This should be followed by installing software dependencies:
 ```sh
-conda install -c pandas numpy matplotlib tensorflow scikit-learn pytorch torchvision
+conda install -c pandas numpy matplotlib scikit-learn pytorch torchvision
 ```
 
 ## IDE (VScode/PyCharm) and JupyterNotebook with conda
