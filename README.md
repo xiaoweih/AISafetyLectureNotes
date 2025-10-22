@@ -25,7 +25,7 @@ macOS: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.h
 First of all, you can set up a conda environment (Note that you do not need to set up conda in the lab)
 
 ```sh
-conda create --name aisafety python==3.7
+conda create --name aisafety python==3.13
 conda activate aisafety
 ```
 This should be followed by installing software dependencies:
