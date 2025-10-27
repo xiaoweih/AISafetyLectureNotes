@@ -25,7 +25,7 @@ import argparse
 import time
 import copy
 
-# input id
+# Change this id to your student id
 id_ = 1000
 
 # setup training parameters
@@ -148,11 +148,11 @@ def eval_adv_test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            data = data.view(data.size(0),28*28)
-            adv_data = adv_attack(model, data, target, device=device)
+    for data, target in test_loader:
+        data, target = data.to(device), target.to(device)
+        data = data.view(data.size(0),28*28)
+        adv_data = adv_attack(model, data, target, device=device)
+        with torch.no_grad():
             output = model(adv_data)
             test_loss += F.nll_loss(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
@@ -185,13 +185,22 @@ def train_model():
         print('Epoch '+str(epoch)+': '+str(int(time.time()-start_time))+'s', end=', ')
         print('trn_loss: {:.4f}, trn_acc: {:.2f}%'.format(trnloss, 100. * trnacc), end=', ')
         print('adv_loss: {:.4f}, adv_acc: {:.2f}%'.format(advloss, 100. * advacc))
-        
-    adv_tstloss, adv_tstacc = eval_adv_test(model, device, test_loader)
-    print('Your estimated attack ability, by applying your attack method on your own trained model, is: {:.4f}'.format(1/adv_tstacc))
-    print('Your estimated defence ability, by evaluating your own defence model over your attack, is: {:.4f}'.format(adv_tstacc))
+
     ################################################################################################
     ## end of training method
     ################################################################################################
+
+    print('\n' + '='*80)
+    print('Training completed! Model saved as: {}.pt'.format(id_))
+    print('='*80)
+    print('\nTo evaluate your attack and defence scores:')
+    print('  1. Test your attack:  python Evaluate_attack.py')
+    print('  2. Test your defence: python Evaluate_defence.py')
+    print('\nMake sure to:')
+    print('  - Update attack method in Evaluate_attack.py')
+    print('  - Update model file path in Evaluate_defence.py')
+    print('  - Verify epsilon constraint < 0.11 (see p_distance output below)')
+    print('='*80 + '\n')
     
     #save the model
     torch.save(model.state_dict(), str(id_)+'.pt')

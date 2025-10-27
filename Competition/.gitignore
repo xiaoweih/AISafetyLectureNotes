@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# PyTorch models
+*.pt
+*.pth
+
+# Data
+data/
+
+# Reference models (download from Canvas)
+Defenders/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+test_output.txt
