@@ -5,6 +5,9 @@ __pycache__/
 *.so
 .Python
 
+# Exception: Allow compiled attacks for extended mode
+!_attacks_internal/*.pyc
+
 # PyTorch models
 *.pt
 *.pth

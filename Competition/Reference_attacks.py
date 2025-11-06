@@ -6,7 +6,7 @@ Author: Lingfang Li
 import torch
 import torch.nn.functional as F
 
-EPSILON = 0.11  # assignment constraint
+EPSILON = 0.1  # assignment constraint: must be < 0.11
 
 ################################################################################################
 ## Fast attacks (recommended for debugging)
