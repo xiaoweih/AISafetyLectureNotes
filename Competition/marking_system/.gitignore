@@ -1,0 +1,47 @@
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Data and model files
+data/
+*.pt
+*.zip
+
+# Extracted submissions
+extracted/
+extracted_v1/
+extracted*/
+
+# Separated file directories
+py_files_v1/
+pt_files_v1/
+*_files_v1/
+
+# Fixed files
+fixed_py_files/
+fixed_pt_files/
+fixed_*_files/
+
+# Results and output
+results/
+analysis_output.txt
+
+# Ad-hoc analysis/debug scripts (contain hardcoded local paths)
+analyze_scores.py
+analyze_zeros.py
+check_specific.py
+test_load_attack.py
+rerun_fixed.py
+generate_feedback.py
+generate_feedback_final.py
+
+# Additional submissions folder
+more submissions/
+
+# Spreadsheets, CSVs, logs
+*.xlsx
+*.csv
+*.log
