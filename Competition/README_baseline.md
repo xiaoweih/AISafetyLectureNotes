@@ -213,6 +213,9 @@ Three baseline attacks are provided **for testing purposes only**:
 - All attacks must satisfy: **L∞ norm STRICTLY < 0.11** (NOT equal to 0.11)
 - Safe value: use epsilon ≤ 0.109
 - Verify your attack: check `p_distance` output in `Competition.py`
+- The limit applies to **every image**. Any adversarial image that contains **NaN/Inf** or has L∞ ≥ 0.11 is replaced by the original image, i.e. counted as **not attacked** (no credit for your attack). If your attack raises an error or returns the wrong shape, that whole batch counts as not attacked.
+- Valid images are **clamped to [0, 1]** before evaluation, so leaving the image range gives no advantage. We recommend clamping in your own attack.
+- Both evaluation scripts apply exactly the same rules as the final marking and report how many of your images were invalid.
 
 ### ⚠️ IMPORTANT - Academic Integrity
 

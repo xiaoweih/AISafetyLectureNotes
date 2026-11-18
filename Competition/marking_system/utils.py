@@ -1,6 +1,6 @@
 """
 COMP219 Marking System - Utility Functions
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 """
 
 import os
@@ -276,6 +276,79 @@ def verify_epsilon_constraint(
     perturbation = torch.norm(original - adversarial, float('inf')).item()
     is_valid = perturbation < epsilon
     return is_valid, perturbation
+
+
+def sanitize_adversarial_batch(
+        original: torch.Tensor,
+        adversarial,
+        epsilon: float = 0.11,
+        clamp: bool = True
+) -> Tuple[torch.Tensor, int, str]:
+    """
+    Make an attack's output safe to evaluate, image by image.
+
+    Rules (checked on the raw output, before clamping):
+      - An image is INVALID if it contains NaN/Inf or its L-inf perturbation is >= epsilon.
+        Invalid images are replaced by the ORIGINAL image, i.e. treated as "not attacked":
+        the attack gets no credit for them, and the defender is evaluated on the clean image.
+      - If the output is unusable as a whole (None, not a tensor, wrong shape), the whole
+        batch is treated as not attacked.
+      - Valid images are clamped to [0, 1] (if clamp=True), so leaving the valid image
+        range gives no advantage. Clamping can only reduce the perturbation.
+
+    Returns:
+        (images_to_evaluate, number_of_invalid_images, reason) - reason is "" if all valid.
+    """
+    original = original.detach()
+    n = original.shape[0]
+
+    if adversarial is None:
+        return original.clone(), n, "attack failed (no output)"
+    if not isinstance(adversarial, torch.Tensor):
+        return original.clone(), n, f"output is {type(adversarial).__name__}, not a tensor"
+    if adversarial.shape != original.shape:
+        return original.clone(), n, (f"output shape {tuple(adversarial.shape)} != "
+                                     f"input shape {tuple(original.shape)}")
+
+    adversarial = adversarial.detach().to(original.device, original.dtype)
+    flat_adv = adversarial.reshape(n, -1)
+    flat_orig = original.reshape(n, -1)
+
+    finite = torch.isfinite(flat_adv).all(dim=1)
+    linf = (flat_adv - flat_orig).abs().max(dim=1).values
+    within = linf < epsilon          # False for NaN, so NaN images are invalid either way
+    valid = finite & within
+
+    if clamp:
+        adversarial = torch.clamp(adversarial, 0.0, 1.0)
+
+    keep = valid.view(n, *([1] * (original.dim() - 1)))
+    result = torch.where(keep, adversarial, original)
+
+    n_invalid = int((~valid).sum().item())
+    reason = ""
+    if n_invalid:
+        parts = []
+        if (~finite).any():
+            parts.append(f"{int((~finite).sum())} with NaN/Inf")
+        over = finite & ~within
+        if over.any():
+            parts.append(f"{int(over.sum())} with L-inf >= {epsilon} "
+                         f"(max {linf[over].max().item():.4f})")
+        reason = f"{n_invalid}/{n} images invalid: " + ", ".join(parts)
+    return result, n_invalid, reason
+
+
+def safe_inverse_accuracy(accuracy, min_accuracy: float):
+    """
+    Attack score of one result = 1 / accuracy, with accuracy floored at min_accuracy.
+
+    min_accuracy should be the smallest non-zero accuracy that can occur
+    (1 / (num_test_samples * num_rounds) in marking), so every non-zero result is unchanged
+    and a 0% result is scored like the strongest possible non-zero result instead of
+    being dropped (old behaviour) or dividing by zero.
+    """
+    return 1.0 / np.maximum(np.asarray(accuracy, dtype=float), min_accuracy)
 
 
 # ==================== Result File Management ====================

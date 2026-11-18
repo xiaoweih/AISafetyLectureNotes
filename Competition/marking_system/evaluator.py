@@ -1,6 +1,6 @@
 """
 COMP219 Marking System - Evaluator Module
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 
 Core evaluation engine for student mutual evaluation.
 """
@@ -20,7 +20,7 @@ from datetime import datetime
 from config import MarkingConfig
 from utils import (
     logger, Net, load_model, set_random_seed,
-    print_progress_bar, verify_epsilon_constraint,
+    print_progress_bar, sanitize_adversarial_batch,
     get_student_ids_from_directory, get_py_filepath, get_pt_filepath
 )
 from dependency_manager import DependencyManager, load_attack_function
@@ -86,6 +86,9 @@ class Evaluator:
 
         # Results
         self.evaluation_matrix: Optional[np.ndarray] = None
+        # Number of invalid adversarial images per (model, attack) - informational only;
+        # invalid images are already handled inside the accuracy (see eval_single_attack)
+        self.invalid_matrix: Optional[np.ndarray] = None
         self.student_ids: List[str] = []
         self.evaluations: Dict[str, StudentEvaluation] = {}
 
@@ -200,62 +203,79 @@ class Evaluator:
             self,
             model: torch.nn.Module,
             attack_fn: Callable,
-            test_loader: DataLoader
-    ) -> Tuple[float, bool]:
+            test_loader: DataLoader,
+            label: str = ""
+    ) -> Tuple[float, int]:
         """
         Evaluate a single attack against a single model.
 
         2025 Update: Attack runs WITH gradient context, prediction WITHOUT.
 
+        Every test image is counted. Adversarial images that break the rules
+        (NaN/Inf, or L-inf perturbation >= epsilon) are replaced by the original
+        image, i.e. counted as "not attacked"; if the attack raises an error or
+        returns an unusable output, the whole batch is counted as not attacked.
+        Valid images are clamped to [0, 1] before prediction.
+        See utils.sanitize_adversarial_batch.
+
         Args:
             model: Defence model
             attack_fn: Attack function
             test_loader: Test data loader
+            label: Text used in log messages (e.g. "Model X vs Attack Y")
 
         Returns:
-            Tuple of (robust_accuracy, epsilon_valid)
+            Tuple of (robust_accuracy, number_of_invalid_images)
         """
         model.eval()
         correct = 0
         total = 0
-        epsilon_valid = True
+        n_invalid = 0
+        prefix = f"{label}: " if label else ""
 
         for data, target in test_loader:
             data, target = data.to(self.device), target.to(self.device)
 
+            # Store original data for the validity check / fallback
+            original_data = data.clone()
+
+            # Generate adversarial examples (WITH gradient context)
+            # This is the 2025 update - attacks can use gradients
+            attack_failed = False
             try:
-                # Store original data for epsilon check
-                original_data = data.clone()
-
-                # Generate adversarial examples (WITH gradient context)
-                # This is the 2025 update - attacks can use gradients
                 adv_data = attack_fn(model, data, target, self.device)
+            except Exception as e:
+                logger.warning(f"{prefix}attack raised an error on a batch, "
+                               f"batch counted as not attacked: {e}")
+                adv_data = None
+                attack_failed = True
 
-                # Verify epsilon constraint
-                is_valid, perturbation = verify_epsilon_constraint(
-                    original_data, adv_data, self.config.epsilon_constraint
-                )
-                if not is_valid:
-                    epsilon_valid = False
-                    logger.warning(f"Epsilon constraint violated: {perturbation:.4f} >= {self.config.epsilon_constraint}")
+            adv_data, batch_invalid, reason = sanitize_adversarial_batch(
+                original_data, adv_data,
+                epsilon=self.config.epsilon_constraint,
+                clamp=self.config.clamp_to_valid_range
+            )
+            if batch_invalid:
+                n_invalid += batch_invalid
+                if not attack_failed:
+                    logger.warning(f"{prefix}{reason} -> counted as not attacked")
 
-                # Evaluate on adversarial examples (WITHOUT gradient context)
+            # Evaluate on adversarial examples (WITHOUT gradient context)
+            try:
                 with torch.no_grad():
                     output = model(adv_data)
                     pred = output.argmax(dim=1, keepdim=True)
                     correct += pred.eq(target.view_as(pred)).sum().item()
                     total += target.size(0)
-
             except Exception as e:
-                logger.debug(f"Error in batch evaluation: {e}")
-                # Continue with remaining batches
+                logger.debug(f"{prefix}error evaluating batch: {e}")
                 continue
 
         if total == 0:
-            return 0.0, False
+            return 0.0, n_invalid
 
         accuracy = correct / total
-        return accuracy, epsilon_valid
+        return accuracy, n_invalid
 
     def _get_partition_suffix(self) -> str:
         """Get file suffix for partition naming"""
@@ -447,6 +467,7 @@ class Evaluator:
 
         # Initialize matrix
         self.evaluation_matrix = np.zeros((n_models, n_attacks))
+        self.invalid_matrix = np.zeros((n_models, n_attacks), dtype=int)
 
         # Try to load checkpoint
         start_row = self._load_checkpoint(model_ids, attack_ids, round_num)
@@ -483,11 +504,13 @@ class Evaluator:
                 start_time = time.time()
 
                 try:
-                    accuracy, epsilon_valid = self.eval_single_attack(
-                        model, attack_fn, test_loader
+                    accuracy, n_invalid = self.eval_single_attack(
+                        model, attack_fn, test_loader,
+                        label=f"Model {defender_id} vs Attack {attacker_id}"
                     )
 
                     self.evaluation_matrix[i, j] = accuracy
+                    self.invalid_matrix[i, j] = n_invalid
 
                     # Store in evaluations
                     attack_score = 1.0 / accuracy if accuracy > 0 else float('inf')
@@ -607,6 +630,19 @@ class Evaluator:
                 )
                 df.to_csv(output_file)
                 logger.info(f"Round {round_num} results saved to {output_file}")
+
+                # Save invalid-image counts (informational; already reflected in accuracies)
+                if self.invalid_matrix is not None:
+                    invalid_file = os.path.join(
+                        self.config.output_dir,
+                        f"invalid_images_round_{round_num}{suffix}.csv"
+                    )
+                    pd.DataFrame(self.invalid_matrix, index=df.index,
+                                 columns=df.columns).to_csv(invalid_file)
+                    n_bad = int(self.invalid_matrix.sum())
+                    if n_bad:
+                        logger.warning(f"Round {round_num}: {n_bad} invalid adversarial images "
+                                       f"counted as not attacked, see {invalid_file}")
 
                 # Only delete checkpoint AFTER results are successfully saved
                 self._delete_checkpoint(round_num)
@@ -838,7 +874,10 @@ class IncrementalEvaluator(Evaluator):
 
             start_time = time.time()
             try:
-                accuracy, _ = self.eval_single_attack(model, attack_fn, test_loader)
+                accuracy, _ = self.eval_single_attack(
+                    model, attack_fn, test_loader,
+                    label=f"Model {model_id} vs Attack {attack_id}"
+                )
                 self.existing_matrix.loc[model_row, attack_col] = accuracy
             except Exception as e:
                 logger.error(f"Evaluation failed: Model {model_id} vs Attack {attack_id}: {e}")
@@ -1295,8 +1334,9 @@ class FixedFilesEvaluator(Evaluator):
             start_time = time.time()
 
             try:
-                accuracy, epsilon_valid = self.eval_single_attack(
-                    model, attack_fn, test_loader
+                accuracy, _ = self.eval_single_attack(
+                    model, attack_fn, test_loader,
+                    label=f"Model {model_id} vs Attack {attack_id}"
                 )
                 new_df.loc[f'Model_{model_id}', f'Attack_{attack_id}'] = accuracy
 

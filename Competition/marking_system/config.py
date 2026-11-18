@@ -1,6 +1,6 @@
 """
 COMP219 Marking System - Configuration
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 """
 
 import os
@@ -50,6 +50,16 @@ class MarkingConfig:
 
     # Epsilon constraint for L-infinity norm
     epsilon_constraint: float = 0.11
+
+    # Validity rules for attack outputs (see utils.sanitize_adversarial_batch)
+    # Checked image by image on the raw output, before clamping. An adversarial image that
+    # contains NaN/Inf or has L-inf perturbation >= epsilon_constraint is replaced by the
+    # original image ("not attacked"). If the attack raises an error or returns an unusable
+    # output (wrong shape / not a tensor), the whole batch counts as not attacked.
+
+    # Clamp every valid adversarial image to [0, 1] before it is fed to the model,
+    # so no attack gains an advantage from leaving the valid image range.
+    clamp_to_valid_range: bool = True
 
     # Timeout for each attack evaluation (seconds)
     attack_timeout: int = 60

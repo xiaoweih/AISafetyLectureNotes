@@ -1,6 +1,6 @@
 """
 Evaluate Defence Ability - Test Your Model Against Reference Attacks
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 """
 
 import numpy as np
@@ -32,16 +32,63 @@ class Net(nn.Module):
         output = F.log_softmax(x, dim=1)
         return output
 
+def project_reference_attack(attack_fn, max_perturbation=0.109):
+    """
+    Wrap a course-provided reference attack so its output always satisfies the rules:
+    L-inf perturbation <= max_perturbation (< 0.11) and values in [0, 1].
+    Some extended attacks use epsilon = 0.11 exactly, which float rounding pushes just
+    above the strict 0.11 limit. (Self-testing only; these attacks are not used in marking.)
+    """
+    def wrapped(model, X, y, device):
+        X_adv = attack_fn(model, X, y, device).detach()
+        delta = torch.clamp(X_adv - X, -max_perturbation, max_perturbation)
+        return torch.clamp(X + delta, 0.0, 1.0)
+    return wrapped
+
+
+EPSILON = 0.11  # L-inf perturbation of every image must be STRICTLY below this
+
+
+def sanitize_adversarial_batch(original, adv_data, epsilon=EPSILON):
+    """
+    Same rules as the marking system, applied image by image to the raw attack output:
+      - an image with NaN/Inf or L-inf perturbation >= 0.11 is INVALID and is replaced by
+        the original image, i.e. counted as "not attacked" (no credit for the attack);
+      - if the output is unusable (not a tensor / wrong shape), the whole batch is not attacked;
+      - valid images are clamped to [0, 1], so leaving the image range gives no advantage.
+    Returns (images_to_evaluate, number_of_invalid_images).
+    """
+    n = original.shape[0]
+    if not isinstance(adv_data, torch.Tensor) or adv_data.shape != original.shape:
+        return original.clone(), n
+    adv_data = adv_data.detach()
+    finite = torch.isfinite(adv_data).all(dim=1)
+    valid = finite & ((adv_data - original).abs().max(dim=1).values < epsilon)
+    adv_data = torch.clamp(adv_data, 0.0, 1.0)
+    return torch.where(valid.unsqueeze(1), adv_data, original), int((~valid).sum().item())
+
+
 def eval_adv_test(model, device, test_loader, attack_method):
+    """Returns (robust_accuracy, number_of_invalid_adversarial_images)."""
     model.eval()
     correct = 0
+    n_invalid = 0
 
     for data, target in test_loader:
         data, target = data.to(device), target.to(device)
         data = data.view(data.size(0), 28*28)
+        original = data.clone()
 
         # Generate adversarial examples (needs gradients)
-        adv_data = attack_method(model, data, target, device=device)
+        try:
+            adv_data = attack_method(model, data, target, device=device)
+        except Exception as e:
+            print(f"\n    [attack error, batch counted as not attacked: {e}]", end=" ")
+            adv_data = None
+
+        # Invalid images -> original image; valid images -> clamped to [0, 1]
+        adv_data, batch_invalid = sanitize_adversarial_batch(original, adv_data)
+        n_invalid += batch_invalid
 
         # Evaluate on adversarial examples (no gradients needed)
         with torch.no_grad():
@@ -49,7 +96,13 @@ def eval_adv_test(model, device, test_loader, attack_method):
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    return correct / len(test_loader.dataset)
+    return correct / len(test_loader.dataset), n_invalid
+
+
+def invalid_note(n_invalid, n_total):
+    if n_invalid == 0:
+        return ""
+    return f"  <-- {n_invalid}/{n_total} images INVALID (NaN/Inf or L-inf >= 0.11), counted as not attacked"
 
 def main():
 
@@ -95,7 +148,7 @@ def main():
             import Extended_attacks as extended_attacks
             extended_attack_fns = extended_attacks.get_all_attacks()
             for i, attack_fn in enumerate(extended_attack_fns, 1):
-                test_attacks.append((f'Advanced-{i:02d}', attack_fn))
+                test_attacks.append((f'Advanced-{i:02d}', project_reference_attack(attack_fn)))
             mode_description = f"EXTENDED ({len(test_attacks)} advanced attacks)"
         except Exception as e:
             print(f"[ERROR] Could not load extended attacks: {e}")
@@ -162,9 +215,9 @@ def main():
     print("\nEvaluating defence robustness...")
     for i, (attack_name, attack_fn) in enumerate(test_attacks):
         print(f"  [{i+1:2d}/{num_attacks}] {attack_name:<15} ... ", end="", flush=True)
-        robust_acc = eval_adv_test(model, device, test_loader, attack_fn)
+        robust_acc, n_invalid = eval_adv_test(model, device, test_loader, attack_fn)
         defence_matrix[i] = robust_acc
-        print(f"{robust_acc*100:>6.2f}%")
+        print(f"{robust_acc*100:>6.2f}%{invalid_note(n_invalid, len(test_loader.dataset))}")
 
     # Calculate overall defence score
     defence_score = np.mean(defence_matrix)

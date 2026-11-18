@@ -122,10 +122,29 @@ The system generates an *n x n* matrix where:
 
 ### Scoring
 
-- **Attack score** = mean of (1 - accuracy) when attacking all other models (self excluded)
+- **Attack score** = mean of (1 / accuracy) when attacking all other models (self excluded)
 - **Defence score** = mean accuracy when attacked by all others (self excluded)
 
 Scores are normalised (min-max by default, Z-score optional via `use_zscore=True`) and mapped to the configured grade range.
+
+### Validity of Attack Outputs
+
+Attack outputs are checked **image by image, on the raw output before clamping**:
+
+| Case | Treatment |
+|---|---|
+| Image contains NaN or Inf | Replaced by the original image (counted as **not attacked**) |
+| Image has L∞ perturbation **≥ 0.11** (the limit is strict) | Replaced by the original image (counted as **not attacked**) |
+| Attack raises an error, or returns a non-tensor / wrong shape | Whole batch counted as **not attacked** |
+| Valid image | Clamped to **[0, 1]** (`clamp_to_valid_range`), then evaluated |
+
+So an attack only gets credit for the images it attacks validly, and a defender is never rewarded or penalised for another student's invalid output: on an invalid image it is simply evaluated on the clean image. Clamping can only reduce the perturbation, so it never causes an L∞ violation. Every test image is always counted.
+
+The number of invalid images per (model, attack) is saved to `results/invalid_images_round_N.csv` (informational; it is already reflected in the accuracies).
+
+### 0% Accuracy
+
+The attack score of one result is `1 / max(accuracy, 1 / (num_test_samples × rounds))`. Every non-zero result is unchanged, and a 0% result counts as the strongest result instead of being dropped.
 
 ## Output Files
 
@@ -136,6 +155,7 @@ results/
 ├── evaluation_round_1.csv       # Round 1 evaluation matrix
 ├── evaluation_round_2.csv       # Round 2 evaluation matrix
 ├── evaluation_round_3.csv       # Round 3 evaluation matrix
+├── invalid_images_round_*.csv   # Invalid adversarial images per (model, attack)
 ├── grades_summary.csv           # Final grades
 ├── feedback/                    # Per-student feedback files
 │   ├── 201234567_feedback.txt

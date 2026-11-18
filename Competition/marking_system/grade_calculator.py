@@ -1,6 +1,6 @@
 """
 COMP219 Marking System - Grade Calculator Module
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 
 Calculates final grades from evaluation matrices.
 """
@@ -12,7 +12,7 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 
 from config import MarkingConfig
-from utils import logger, print_summary_statistics
+from utils import logger, print_summary_statistics, safe_inverse_accuracy
 
 
 @dataclass
@@ -70,7 +70,8 @@ class GradeCalculator:
     def calculate_from_single_matrix(
             self,
             matrix_df: pd.DataFrame,
-            exclude_self: bool = True
+            exclude_self: bool = True,
+            num_rounds: int = 1
     ) -> Dict[str, StudentGrade]:
         """
         Calculate grades from a single evaluation matrix.
@@ -78,6 +79,7 @@ class GradeCalculator:
         Args:
             matrix_df: DataFrame with Model_{id} as index, Attack_{id} as columns
             exclude_self: Whether to exclude self-attack scores
+            num_rounds: Number of rounds averaged into matrix_df (sets the 0% floor)
 
         Returns:
             Dictionary mapping student_id to StudentGrade
@@ -108,11 +110,15 @@ class GradeCalculator:
 
                 # Attack score = mean(1/accuracy)
                 # Higher attack score = better attack (lower accuracy on victims)
-                # Filter out NaN and zero values
+                # Filter out NaN (self-attack). A 0% result is NOT dropped: accuracy is
+                # floored at the smallest possible non-zero value, so 0% counts as the
+                # strongest result and every non-zero result is unchanged.
                 col_values = col_values.astype(float)
-                valid_values = col_values[(~np.isnan(col_values)) & (col_values > 0)]
+                valid_values = col_values[~np.isnan(col_values)]
+                min_accuracy = 1.0 / (self.config.num_test_samples * max(num_rounds, 1))
                 if len(valid_values) > 0:
-                    attack_scores[student_id] = np.mean(1.0 / valid_values)
+                    attack_scores[student_id] = float(np.mean(
+                        safe_inverse_accuracy(valid_values, min_accuracy)))
                 else:
                     attack_scores[student_id] = 0.0
             else:
@@ -254,7 +260,7 @@ class GradeCalculator:
             raise ValueError("No matrices provided")
 
         if len(matrices) == 1:
-            return self.calculate_from_single_matrix(matrices[0], exclude_self)
+            return self.calculate_from_single_matrix(matrices[0], exclude_self, num_rounds=1)
 
         # Average the matrices
         logger.info(f"Averaging {len(matrices)} evaluation rounds...")
@@ -268,7 +274,8 @@ class GradeCalculator:
         # Average
         averaged_matrix = sum(matrices) / len(matrices)
 
-        return self.calculate_from_single_matrix(averaged_matrix, exclude_self)
+        return self.calculate_from_single_matrix(averaged_matrix, exclude_self,
+                                                 num_rounds=len(matrices))
 
     def _normalize_scores(self, scores: List[float]) -> List[float]:
         """

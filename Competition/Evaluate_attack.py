@@ -1,6 +1,6 @@
 """
 Evaluate Attack Ability - Test Your Attack Against Reference Models
-Author: Lingfang Li
+Authors: Lingfang Li, Qisong He
 """
 
 import numpy as np
@@ -52,16 +52,49 @@ def your_attack(model, X, y, device):
 ## End of attack definition
 ################################################################################################
 
+EPSILON = 0.11  # L-inf perturbation of every image must be STRICTLY below this
+
+
+def sanitize_adversarial_batch(original, adv_data, epsilon=EPSILON):
+    """
+    Same rules as the marking system, applied image by image to the raw attack output:
+      - an image with NaN/Inf or L-inf perturbation >= 0.11 is INVALID and is replaced by
+        the original image, i.e. counted as "not attacked" (no credit for the attack);
+      - if the output is unusable (not a tensor / wrong shape), the whole batch is not attacked;
+      - valid images are clamped to [0, 1], so leaving the image range gives no advantage.
+    Returns (images_to_evaluate, number_of_invalid_images).
+    """
+    n = original.shape[0]
+    if not isinstance(adv_data, torch.Tensor) or adv_data.shape != original.shape:
+        return original.clone(), n
+    adv_data = adv_data.detach()
+    finite = torch.isfinite(adv_data).all(dim=1)
+    valid = finite & ((adv_data - original).abs().max(dim=1).values < epsilon)
+    adv_data = torch.clamp(adv_data, 0.0, 1.0)
+    return torch.where(valid.unsqueeze(1), adv_data, original), int((~valid).sum().item())
+
+
 def eval_adv_test(model, device, test_loader, attack_method):
+    """Returns (robust_accuracy, number_of_invalid_adversarial_images)."""
     model.eval()
     correct = 0
+    n_invalid = 0
 
     for data, target in test_loader:
         data, target = data.to(device), target.to(device)
         data = data.view(data.size(0), 28*28)
+        original = data.clone()
 
         # Generate adversarial examples (needs gradients)
-        adv_data = attack_method(model, data, target, device=device)
+        try:
+            adv_data = attack_method(model, data, target, device=device)
+        except Exception as e:
+            print(f"\n    [attack error, batch counted as not attacked: {e}]", end=" ")
+            adv_data = None
+
+        # Invalid images -> original image; valid images -> clamped to [0, 1]
+        adv_data, batch_invalid = sanitize_adversarial_batch(original, adv_data)
+        n_invalid += batch_invalid
 
         # Evaluate on adversarial examples (no gradients needed)
         with torch.no_grad():
@@ -69,7 +102,13 @@ def eval_adv_test(model, device, test_loader, attack_method):
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    return correct / len(test_loader.dataset)
+    return correct / len(test_loader.dataset), n_invalid
+
+
+def invalid_note(n_invalid, n_total):
+    if n_invalid == 0:
+        return ""
+    return f"  <-- {n_invalid}/{n_total} images INVALID (NaN/Inf or L-inf >= 0.11), counted as not attacked"
 
 def main():
 
@@ -79,7 +118,8 @@ def main():
     ## Extract the zip file, then specify the path below
     ################################################################################################
 
-    defenders_path = ".\Defenders"  # change this to your extracted Defenders folder path
+    # Works on Windows, macOS and Linux, from any working directory
+    defenders_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Defenders")  # change if needed
 
     ################################################################################################
     ## Step 2: Your attack function is defined above (see your_attack function)
@@ -140,6 +180,7 @@ def main():
     # build attack matrix: [1 attack] x [N models]
     num_models = len(model_files)
     attack_matrix = np.zeros(num_models)
+    total_invalid = 0
 
     print("\nEvaluating your attack...")
     for i, model_file in enumerate(model_files):
@@ -151,14 +192,17 @@ def main():
         model.load_state_dict(torch.load(model_path, map_location=device))
 
         # evaluate attack
-        robust_acc = eval_adv_test(model, device, test_loader, attack_to_test)
+        robust_acc, n_invalid = eval_adv_test(model, device, test_loader, attack_to_test)
         attack_matrix[i] = robust_acc
-        print(f"{robust_acc*100:.2f}%")
+        total_invalid += n_invalid
+        print(f"{robust_acc*100:.2f}%{invalid_note(n_invalid, len(test_loader.dataset))}")
 
         del model
 
     # calculate attack score (mean of 1/robust_acc)
-    attack_scores = 1.0 / (attack_matrix + 1e-10)  # avoid division by zero
+    # 0% accuracy is floored at the smallest non-zero accuracy (1 / number of test images),
+    # the same rule as the marking system, instead of dividing by zero
+    attack_scores = 1.0 / np.maximum(attack_matrix, 1.0 / len(test_loader.dataset))
     attack_score = np.mean(attack_scores)
 
     # display results
@@ -178,6 +222,10 @@ def main():
     print("="*80)
     print(f"Your Attack Score: {attack_score:.4f}")
     print("="*80)
+    if total_invalid:
+        print(f"\nWARNING: {total_invalid} adversarial images were INVALID (NaN/Inf, or L-inf >= 0.11).")
+        print("They were counted as NOT attacked, exactly as in the final marking.")
+        print("Fix your attack so every image is finite and has L-inf perturbation < 0.11.")
     print("\nNote:")
     print("  - Higher score is better (stronger attack)")
     print("  - Attack Score = mean(1/robust_accuracy)")
